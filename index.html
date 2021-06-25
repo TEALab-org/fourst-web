@@ -64,38 +64,36 @@
         <div>
             <div class="mt-3"></div>
             <h4 class="mb-3">Stencil Specifications</h4>
-            <form class="needs-validation" novalidate>
                 <div class="row g-5">
                     <div class="col-sm-6">
                         <label for="stencil-dim" class="form-label">Dimensions of Stencil Matrix</label>
                         <input type="text" class="form-control" id="stencil-dim" placeholder="Enter as a comma separated list" value="" required>
-                        <div class="invalid-feedback">
-                            This field is required.
-                        </div>
                     </div>
 
                     <div class="col-sm-6">
                         <label for="bound-const" class="form-label">Boundary Value</label>
                         <div class="input-group has-validation">
                             <input type="number" class="form-control" id="bound-const" placeholder="0" required>
-                            <div class="invalid-feedback">
-                                This field is required.
-                            </div>
                         </div>
                     </div>
 
                     <div class="col-12">
-                        Coefficient Matrix
+                        <select class="form-select" aria-label="Computation Method" id="comp-method">
+                            <option value="matrix" selected>Coefficient Matrix</option>
+                            <option value="kernel">Kernel</option>
+                        </select>
+
                         <div class="bg-white border">
                             <div id="mat-cont"></div>
                         </div>
                     </div>
                 </div>
+            <br>
+            <button class="w-100 btn btn-primary btn-lg" onclick="genRes()">Generate Code</button>
 
-                <hr class="my-4">
+            <hr class="my-4">
 
-                <button class="w-100 btn btn-primary btn-lg" type="submit" onclick="genRes()">Generate Code</button>
-            </form>
+            <input class="form-control" type="text" placeholder="output" id="text-out" readonly>
         </div>
     </div>
 </body>
