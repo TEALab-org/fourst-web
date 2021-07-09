@@ -3,21 +3,25 @@ let s_mat    = undefined;
 let m_cont   = undefined;
 let t_out    = undefined;
 let c_method = undefined;
+let m_sel    = undefined;
+
+const METHOD_KEY = {
+    "matrix": genStencilMat,
+    "kernel": genKernelInput,
+};
+
+const ACCEPTABLE_VARS = "ijklmnopqrstuvwxyz";
 
 function genStencilMat(dim, elm) {
     if (dim.length == 0) {
         errOut("Empty -- please indicate the dimensions of the stencil matrix", elm);
         return;
-    } if (dim.length > 2) {
-        c_method.val("kernel");
-        c_method.change();
-        //errOut(`Currently, only two dimensions are supported (got ${dim.length})`, elm);
-        return;
-    } if (dim.length == 1) {
+    }
+    if (dim.length == 1) {
         dim.push(0);
     }
 
-    out = "<table class='table-bordered coeff-mat'>";
+    let out = "<table class='table-bordered coeff-mat'>";
     for (let i = 0; i < dim[1] * 2 + 1; i++) {
         out += "<tr>";
         for (let j = 0; j < dim[0] * 2 + 1; j++) {
@@ -33,11 +37,37 @@ function genStencilMat(dim, elm) {
             else if (j == dim[0]) {
                 c = "h-mid";
             }
-            out += `<td class="${c}">${i}, ${j}</td>`;
+            out += `<td id="m_${i}-${j}" class="cm_cell ${c}"><input class="cm_input" placeholder="0" type="number"></td>`;
         }
         out += "</td>";
     }
     out += "</table>";
+
+    elm[0].innerHTML = out;
+
+    for (let i = 0; i < dim[1] * 2 + 1; i++) {
+        for (let j = 0; j < dim[0] * 2 + 1; j++) {
+            tippy(`#m_${i}-${j}`, {
+                content: `(${j},${i})`,
+            });
+        }
+    }
+}
+
+function genKernelInput(dim, elm) {
+    // first, we need to generate the keys
+    const dKey = 
+        (dim.length < ACCEPTABLE_VARS.length) ? 
+        ACCEPTABLE_VARS.slice(0, dim.length) : 
+        [...Array(dim.length).keys()].map(x=>{return `d${x}`});
+
+    out = "<table class='table-bordered kernel-desc'><tr>";
+    for (let i = 0; i < dim.length; i++) {
+        out += `<td>${dKey[i]}: 0->${dim[i] * 2 + 1}</td>`;
+    }
+    out += "</tr></table>";
+
+    out += `<textarea id="form10" class="md-textarea form-control" rows="3"></textarea>`;
 
     elm[0].innerHTML = out;
 }
@@ -56,12 +86,13 @@ function genRes() {
 
 function updateEntry() {
     const d = s_dim.val().replace(/\s/g, '').split(",").map(x=>+x).filter(x=>x!=0);
-    console.log(c_method.val());
-    if (c_method.val() == "matrix") {
-        genStencilMat(d, m_cont);
-    } else {
-        errOut("Not implemented", m_cont);
+    /*if (d.length > 2) {
+        m_sel.prop("disabled", true);
+        c_method.val("kernel");
+        c_method.change();
     }
+    else m_sel.prop("disabled", true);*/
+    METHOD_KEY[c_method.val()](d, m_cont);
 }
 
 function main() {
@@ -70,6 +101,7 @@ function main() {
     m_cont   = $("#mat-cont");
     t_out    = $("#text-out");
     c_method = $("#comp-method");
+    m_sel    = $("#mat-select");
 
     s_dim.change(updateEntry);
     c_method.change(updateEntry);
@@ -79,5 +111,3 @@ function main() {
     // indicate loading done
     console.log("Core loaded");
 }
-
-main();
