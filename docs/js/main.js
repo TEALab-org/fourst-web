@@ -5,6 +5,8 @@ let t_out    = undefined;
 let c_method = undefined;
 let m_sel    = undefined;
 
+let libfourst = null;
+
 const METHOD_KEY = {
     "matrix": genStencilMat,
     "kernel": genKernelInput,
@@ -107,6 +109,17 @@ function main() {
     c_method.change(updateEntry);
 
     s_dim.change();
+
+    // load libfourst
+    loadlibfourst().then((_libfourst) => {
+        libfourst = _libfourst;
+    
+        libfourst._write_stdout.push((text) => {console.log(`stdout: ${text}`);});
+        libfourst._write_stdout.push(output);
+        libfourst._write_stderr.push((text) => {console.log(`stderr: ${text}`);});
+    
+        libfourst._fourst_init();
+    });
 
     // indicate loading done
     console.log("Core loaded");
