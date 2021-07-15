@@ -42,7 +42,7 @@ src_HH       := $(wildcard src/*.hh)
 src_O        := $(patsubst %.cc,build/%.o,$(src_CC))
 src_EMCCO    := $(patsubst %.cc,build/%.emcco,$(src_CC))
 
-out_LIB_JS   := docs/js/lib/libfourst.js
+out_LIB_JS   := web/js/lib/libfourst.js
 
 
 # -*- Rules -*-

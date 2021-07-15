@@ -24,6 +24,8 @@ typedef int _int;
 // Initialize the FOURST library
 FOURST_API void fourst_init();
 
+FOURST_API int fourst_gencode(double* in);
+
 }
 
 

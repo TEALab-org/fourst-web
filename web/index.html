@@ -29,6 +29,10 @@
 
     <!-- Project-specfic files -->
     <link rel="stylesheet" href="css/main.css">
+
+    <!-- Ace Editor -->
+    <script src="js/ace-1.4.12.min.js" type="text/javascript" charset="utf-8"></script>
+    
     <script src="js/main.js"></script>
 </head>
 
@@ -88,7 +92,8 @@
                         </select>
 
                         <div class="bg-white border">
-                            <div id="mat-cont"></div>
+                            <div id="matrix-input"></div>
+                            <div id="kernel-input"></div>
                         </div>
                     </div>
                 </div>
@@ -97,7 +102,7 @@
 
             <hr class="my-4">
 
-            <input class="form-control" type="text" placeholder="output" id="text-out" readonly>
+            <pre class="form-control" id="text-out"></pre>
         </div>
     </div>
 </body>
