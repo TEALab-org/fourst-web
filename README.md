@@ -20,4 +20,4 @@ $ make
 
 ## Running
 
-Upon using the `make` command, a static webpage will be created in the `docs/` folder. You can host this site as you would any other static site -- for example, `python3 -m http.server` in the `docs/` folder.
+Upon using the `make` command, a static webpage will be created in the `web/` folder. You can host this site as you would any other static site -- for example, `python3 -m http.server` in the `web/` folder.
