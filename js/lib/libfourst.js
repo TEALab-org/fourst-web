@@ -1853,6 +1853,10 @@ var ASM_CONSTS = {
       return demangleAll(js);
     }
 
+  function _abort() {
+      abort();
+    }
+
   function _emscripten_memcpy_big(dest, src, num) {
       HEAPU8.copyWithin(dest, src, src + num);
     }
@@ -4333,6 +4337,7 @@ function intArrayToString(array) {
 
 
 var asmLibraryArg = {
+  "abort": _abort,
   "emscripten_memcpy_big": _emscripten_memcpy_big,
   "emscripten_resize_heap": _emscripten_resize_heap,
   "fd_write": _fd_write,
@@ -4344,6 +4349,15 @@ var ___wasm_call_ctors = Module["___wasm_call_ctors"] = createExportWrapper("__w
 
 /** @type {function(...*):?} */
 var _fourst_init = Module["_fourst_init"] = createExportWrapper("fourst_init");
+
+/** @type {function(...*):?} */
+var _fourst_gencode = Module["_fourst_gencode"] = createExportWrapper("fourst_gencode");
+
+/** @type {function(...*):?} */
+var _malloc = Module["_malloc"] = createExportWrapper("malloc");
+
+/** @type {function(...*):?} */
+var _free = Module["_free"] = createExportWrapper("free");
 
 /** @type {function(...*):?} */
 var ___errno_location = Module["___errno_location"] = createExportWrapper("__errno_location");
@@ -4374,12 +4388,6 @@ var _emscripten_stack_get_free = Module["_emscripten_stack_get_free"] = function
 var _emscripten_stack_get_end = Module["_emscripten_stack_get_end"] = function() {
   return (_emscripten_stack_get_end = Module["_emscripten_stack_get_end"] = Module["asm"]["emscripten_stack_get_end"]).apply(null, arguments);
 };
-
-/** @type {function(...*):?} */
-var _malloc = Module["_malloc"] = createExportWrapper("malloc");
-
-/** @type {function(...*):?} */
-var _free = Module["_free"] = createExportWrapper("free");
 
 /** @type {function(...*):?} */
 var dynCall_jiji = Module["dynCall_jiji"] = createExportWrapper("dynCall_jiji");

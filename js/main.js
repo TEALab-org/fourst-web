@@ -1,11 +1,17 @@
-let s_dim    = undefined;
-let s_mat    = undefined;
-let m_cont   = undefined;
-let t_out    = undefined;
-let c_method = undefined;
-let m_sel    = undefined;
+let s_dim     = undefined;
+let s_mat     = undefined;
+let m_cont    = undefined;
+let t_out     = undefined;
+let c_method  = undefined;
+let m_sel     = undefined;
 
-let libfourst = null;
+let kernel_input = undefined;
+
+let libfourst = undefined;
+
+let editor    = undefined;
+
+let dim       = undefined;
 
 const METHOD_KEY = {
     "matrix": genStencilMat,
@@ -14,7 +20,11 @@ const METHOD_KEY = {
 
 const ACCEPTABLE_VARS = "ijklmnopqrstuvwxyz";
 
-function genStencilMat(dim, elm) {
+function genStencilMat(dim) {
+    kernel_input.hide();
+
+    const elm = m_cont;
+    elm.show();
     if (dim.length == 0) {
         errOut("Empty -- please indicate the dimensions of the stencil matrix", elm);
         return;
@@ -56,22 +66,66 @@ function genStencilMat(dim, elm) {
     }
 }
 
-function genKernelInput(dim, elm) {
+function genKernelInput(dim) {
+    m_cont.hide();
+
+    elm = kernel_input;
+    elm.show();
+
+    // redraw the editor
+    editor.resize();
+    editor.renderer.updateFull();
+    
     // first, we need to generate the keys
     const dKey = 
         (dim.length < ACCEPTABLE_VARS.length) ? 
         ACCEPTABLE_VARS.slice(0, dim.length) : 
         [...Array(dim.length).keys()].map(x=>{return `d${x}`});
 
-    out = "<table class='table-bordered kernel-desc'><tr>";
+    /*out = "<table class='table-bordered kernel-desc'><tr>";
     for (let i = 0; i < dim.length; i++) {
         out += `<td>${dKey[i]}: 0->${dim[i] * 2 + 1}</td>`;
     }
-    out += "</tr></table>";
+    out += "</tr></table>";*/
 
-    out += `<textarea id="form10" class="md-textarea form-control" rows="3"></textarea>`;
+    //out += `<textarea id="form10" class="md-textarea form-control" rows="3">`;
+    
+    for (let i = 0; i < dim.length; i++) {
+        for (let j = 0; i < j; j++) {
+            out += `  `;
+        }
+        out += `for (int ${dKey[i]} = 0; ${dKey[i]} < ${dim[i] * 2 + 1}; ${dKey[i]}++) {\n`;
+    }
+
+    //out += `</textarea>`;
 
     elm[0].innerHTML = out;
+}
+
+function grabMatrix() {
+    elm = m_cont;
+
+    if (dim.length < 1) alert("can't grab nothing!");
+
+    let out = Array();
+
+    for (let i = 0; i < dim[0] * 2 + 1; i++) {
+        const lim = (dim.length > 1) ? dim[1] * 2 + 1 : 1; 
+        for (let j = 0; j < lim; j++) {
+            const t = $(`#m_${i}-${j}`).find(":input").val();
+            let v;
+            if (t.length > 0) {
+                v = parseFloat(t);
+                if (v.toString().length != t.length && v.toString().replace('0.', '.').length != t.length) {
+                    alert(`yo ${i},${j} is wack`);
+                }
+            } else v = 0.0;            
+
+            out.push(v);
+        }
+    }
+
+    return out;
 }
 
 function errOut(msg, elm) {
@@ -79,31 +133,66 @@ function errOut(msg, elm) {
 }
 
 function output(msg) {
-    t_out.val(msg);
+    t_out[0].innerHTML += msg + '\n';
+}
+
+function flush_out() {
+    t_out[0].innerHTML = "";
 }
 
 function genRes() {
-    output("Not implemented!");
+    if (c_method.val() == "matrix") {
+        const arr = grabMatrix();
+        for (let i = 1; i <= dim.length; i++) {
+            arr.unshift(dim[dim.length - i]);
+        }
+        arr.unshift(dim.length);
+
+        let floatData = Float64Array.from(arr);
+
+        console.log(floatData);
+
+        // Get data byte size, allocate memory on Emscripten heap, and get pointer
+        const nDataBytes = floatData.length * floatData.BYTES_PER_ELEMENT;
+        const dataPtr = libfourst._malloc(nDataBytes);
+
+        var dataHeap = new Uint8Array(libfourst.HEAPU8.buffer, dataPtr, nDataBytes);
+        dataHeap.set(new Uint8Array(floatData.buffer));
+
+        flush_out();
+        if (libfourst._fourst_gencode(dataHeap.byteOffset)) {
+            output("someone made an oopsie...");
+        }
+
+        libfourst._free(dataHeap.byteOffset);
+    }
 }
 
 function updateEntry() {
-    const d = s_dim.val().replace(/\s/g, '').split(",").map(x=>+x).filter(x=>x!=0);
-    /*if (d.length > 2) {
+    dim = s_dim.val().replace(/\s/g, '').split(",").map(x=>+x).filter(x=>x!=0);
+
+    if (dim.length > 2) {
+        if (c_method.val() == "matrix") {
+            c_method.val("kernel");
+            c_method.change();
+            return;
+        }
         m_sel.prop("disabled", true);
-        c_method.val("kernel");
-        c_method.change();
     }
-    else m_sel.prop("disabled", true);*/
-    METHOD_KEY[c_method.val()](d, m_cont);
+    else m_sel.prop("disabled", false);
+
+    console.log(c_method.val());
+    METHOD_KEY[c_method.val()](dim, m_cont);
 }
 
 function main() {
     // initialize element vars
-    s_dim    = $("#stencil-dim");
-    m_cont   = $("#mat-cont");
-    t_out    = $("#text-out");
-    c_method = $("#comp-method");
-    m_sel    = $("#mat-select");
+    s_dim        = $("#stencil-dim");
+    m_cont       = $("#matrix-input");
+    kernel_input = $("#kernel-input");
+    t_out        = $("#text-out");
+    c_method     = $("#comp-method");
+    m_sel        = $("#mat-select");
 
     s_dim.change(updateEntry);
     c_method.change(updateEntry);
