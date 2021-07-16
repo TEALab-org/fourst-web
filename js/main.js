@@ -1,18 +1,32 @@
-let s_dim     = undefined;
-let s_mat     = undefined;
-let m_cont    = undefined;
-let t_out     = undefined;
-let c_method  = undefined;
-let m_sel     = undefined;
-
+// various elements to be populated once DOM is initialized
+let s_dim        = undefined;
+let s_mat        = undefined;
+let m_cont       = undefined;
+let t_out        = undefined;
+let c_method     = undefined;
+let m_sel        = undefined;
 let kernel_input = undefined;
+let submit       = undefined;
 
+// emscripten module
 let libfourst = undefined;
 
+// ace editor
 let editor    = undefined;
 
+// dimensions
 let dim       = undefined;
 
+// coefficients
+let coeffs    = [];
+
+// current output
+let outstr    = undefined;
+
+// tippy instances
+let copy_msg  = undefined;
+
+// method to generate coefficients
 const METHOD_KEY = {
     "matrix": genStencilMat,
     "kernel": genKernelInput,
@@ -21,10 +35,12 @@ const METHOD_KEY = {
 const ACCEPTABLE_VARS = "ijklmnopqrstuvwxyz";
 
 function genStencilMat(dim) {
+    // do necessary showing / hiding
     kernel_input.hide();
-
     const elm = m_cont;
     elm.show();
+
+    // throw out 0 dimensions and make 1d into 2d
     if (dim.length == 0) {
         errOut("Empty -- please indicate the dimensions of the stencil matrix", elm);
         return;
@@ -49,21 +65,39 @@ function genStencilMat(dim) {
             else if (j == dim[0]) {
                 c = "h-mid";
             }
-            out += `<td id="m_${i}-${j}" class="cm_cell ${c}"><input class="cm_input" placeholder="0" type="number"></td>`;
+            out += `<td id="m_${i}-${j}" class="cm_cell ${c}"><input data-loc="${i},${j}" class="cm_input" placeholder="0" type="number"></td>`;
         }
         out += "</td>";
     }
     out += "</table>";
+
+    // wait for dom to update and then give change events to cells
+    setTimeout(() => {
+        $(".cm_input").on('change', (e) => updateCoeff(e.target.getAttribute("data-loc").split(",").map(x=>+x), e.target.value));
+    }, 0);
 
     elm[0].innerHTML = out;
 
     for (let i = 0; i < dim[1] * 2 + 1; i++) {
         for (let j = 0; j < dim[0] * 2 + 1; j++) {
             tippy(`#m_${i}-${j}`, {
-                content: `(${j},${i})`,
+                content: `(${i},${j})`,
             });
         }
     }
+}
+
+function updateCoeff(loc, val) {
+    if (loc.length != dim.length) alert("math broke bro");
+
+    let index = 0;
+    let offset = 1;
+    for (let i = dim.length - 1; i >= 0; i--) {
+        index += loc[i] * offset;
+        offset *= (dim[i] * 2 + 1);
+    }
+
+    coeffs[index] = val;
 }
 
 function genKernelInput(dim) {
@@ -81,14 +115,6 @@ function genKernelInput(dim) {
         (dim.length < ACCEPTABLE_VARS.length) ? 
         ACCEPTABLE_VARS.slice(0, dim.length) : 
         [...Array(dim.length).keys()].map(x=>{return `d${x}`});
-
-    /*out = "<table class='table-bordered kernel-desc'><tr>";
-    for (let i = 0; i < dim.length; i++) {
-        out += `<td>${dKey[i]}: 0->${dim[i] * 2 + 1}</td>`;
-    }
-    out += "</tr></table>";*/
-
-    //out += `<textarea id="form10" class="md-textarea form-control" rows="3">`;
     
     for (let i = 0; i < dim.length; i++) {
         for (let j = 0; i < j; j++) {
@@ -103,28 +129,8 @@ function genKernelInput(dim) {
 }
 
 function grabMatrix() {
-    elm = m_cont;
-
-    if (dim.length < 1) alert("can't grab nothing!");
-
-    let out = Array();
-
-    for (let i = 0; i < dim[0] * 2 + 1; i++) {
-        const lim = (dim.length > 1) ? dim[1] * 2 + 1 : 1; 
-        for (let j = 0; j < lim; j++) {
-            const t = $(`#m_${i}-${j}`).find(":input").val();
-            let v;
-            if (t.length > 0) {
-                v = parseFloat(t);
-                if (v.toString().length != t.length && v.toString().replace('0.', '.').length != t.length) {
-                    alert(`yo ${i},${j} is wack`);
-                }
-            } else v = 0.0;            
-
-            out.push(v);
-        }
-    }
-
+    const out = coeffs.map(function(v) { return v == "" ? 0.0 : v; });
+    console.log(out);
     return out;
 }
 
@@ -133,11 +139,38 @@ function errOut(msg, elm) {
 }
 
 function output(msg) {
-    t_out[0].innerHTML += msg + '\n';
+    t_out[0].innerHTML += msg.replace('<', '&lt').replace('>', '&gt') + '\n';
+    outstr += msg + '\n';
+}
+
+// https://stackoverflow.com/questions/51805395/navigator-clipboard-is-undefined
+function copyToClipboard(textToCopy) {
+    // navigator clipboard api needs a secure context (https)
+    if (navigator.clipboard && window.isSecureContext) {
+        // navigator clipboard api method'
+        return navigator.clipboard.writeText(textToCopy);
+    } else {
+        // text area method
+        let textArea = document.createElement("textarea");
+        textArea.value = textToCopy;
+        // make the textarea out of viewport
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        return new Promise((res, rej) => {
+            // here the magic happens
+            document.execCommand('copy') ? res() : rej();
+            textArea.remove();
+        });
+    }
 }
 
 function flush_out() {
     t_out[0].innerHTML = "";
+    outstr = "";
 }
 
 function genRes() {
@@ -170,6 +203,15 @@ function genRes() {
 
 function updateEntry() {
     dim = s_dim.val().replace(/\s/g, '').split(",").map(x=>+x).filter(x=>x!=0);
+    
+    if (dim.length) {
+        const c = dim[0];
+        dim[0] = 2 * dim[0] + 1;
+        coeffs = new Array(dim.reduce( (a, b) => a * (2 * b + 1) ));
+        dim[0] = c;
+    }
+
+    submit.prop("disabled", !(dim.length > 0));
 
     if (dim.length > 2) {
         if (c_method.val() == "matrix") {
@@ -181,7 +223,6 @@ function updateEntry() {
     }
     else m_sel.prop("disabled", false);
 
-    console.log(c_method.val());
     METHOD_KEY[c_method.val()](dim, m_cont);
 }
 
@@ -193,11 +234,14 @@ function main() {
     t_out        = $("#text-out");
     c_method     = $("#comp-method");
     m_sel        = $("#mat-select");
+    submit       = $("#submit");
 
     s_dim.change(updateEntry);
     c_method.change(updateEntry);
 
     s_dim.change();
+
+    flush_out();
 
     // load libfourst
     loadlibfourst().then((_libfourst) => {
@@ -208,6 +252,13 @@ function main() {
         libfourst._write_stderr.push((text) => {console.log(`stderr: ${text}`);});
     
         libfourst._fourst_init();
+    });
+
+    t_out.on('click', ()=>{copyToClipboard(outstr).then(()=>{copy_msg.setContent("Copied!"); setTimeout(()=>{copy_msg.setContent("Click to copy"), 1000});});});
+
+    copy_msg = tippy(t_out[0], {
+        content: `Click to copy`,
+        hideOnClick: false,
     });
 
     // indicate loading done
