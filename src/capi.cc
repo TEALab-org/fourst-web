@@ -10,21 +10,11 @@
 namespace fourst {
 
 void fourst_init() {
-    printf("libfourst initialized\n");
+    printf("libfourst initialized!\nClick\"Generate Code\" to begin.");
 }
 
-int fourst_gencode(double* in) {
-    int n = (int) in[0];
-    int* size = new int[n];
-
-    printf("Got %d dimensions (", n);
-    for (int i = 0; i < n; i++) {
-        size[i] = in[i + 1];
-        printf((i == n - 1) ? "%d" : "%d, ", size[i]);
-    }
-    printf(")\n");
-
-    gencode();
+int fourst_gencode(double* arr) {
+    _gencode(arr);
 
     return 0;
 }

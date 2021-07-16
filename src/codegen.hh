@@ -3,6 +3,6 @@
 
 #include <cstdio>
 
-void gencode(FILE* outfp=stdout);
+int _gencode(double* arr, FILE* outfp=stdout);
 
 #endif
