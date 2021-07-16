@@ -65,7 +65,7 @@ function genStencilMat(dim) {
             else if (j == dim[0]) {
                 c = "h-mid";
             }
-            out += `<td id="m_${i}-${j}" class="cm_cell ${c}"><input data-loc="${i},${j}" class="cm_input" placeholder="0" type="number"></td>`;
+            out += `<td id="m_${i}-${j}" class="cm_cell ${c}"><input data-loc="${i},${j}" class="cm_input" placeholder="0" type="number" value="${coeffs[flattenIdx([i, j])]}"></td>`;
         }
         out += "</td>";
     }
@@ -87,9 +87,7 @@ function genStencilMat(dim) {
     }
 }
 
-function updateCoeff(loc, val) {
-    if (loc.length != dim.length) alert("math broke bro");
-
+function flattenIdx(loc) {
     let index = 0;
     let offset = 1;
     for (let i = dim.length - 1; i >= 0; i--) {
@@ -97,7 +95,11 @@ function updateCoeff(loc, val) {
         offset *= (dim[i] * 2 + 1);
     }
 
-    coeffs[index] = val;
+    return index
+}
+
+function updateCoeff(loc, val) {
+    coeffs[flattenIdx(loc)] = val;
 }
 
 function genKernelInput(dim) {
@@ -123,15 +125,11 @@ function genKernelInput(dim) {
         out += `for (int ${dKey[i]} = 0; ${dKey[i]} < ${dim[i] * 2 + 1}; ${dKey[i]}++) {\n`;
     }
 
-    //out += `</textarea>`;
-
     elm[0].innerHTML = out;
 }
 
 function grabMatrix() {
-    const out = coeffs.map(function(v) { return v == "" ? 0.0 : v; });
-    console.log(out);
-    return out;
+    return Array.from(coeffs, v => v || 0);
 }
 
 function errOut(msg, elm) {
@@ -173,7 +171,8 @@ function flush_out() {
     outstr = "";
 }
 
-function genRes() {
+function genRes(arr = undefined) {
+    t_out.css("background-color", "white");
     if (c_method.val() == "matrix") {
         const arr = grabMatrix();
         for (let i = 1; i <= dim.length; i++) {
@@ -181,27 +180,29 @@ function genRes() {
         }
         arr.unshift(dim.length);
 
-        let floatData = Float64Array.from(arr);
-
-        console.log(floatData);
-
-        // Get data byte size, allocate memory on Emscripten heap, and get pointer
-        const nDataBytes = floatData.length * floatData.BYTES_PER_ELEMENT;
-        const dataPtr = libfourst._malloc(nDataBytes);
-
-        var dataHeap = new Uint8Array(libfourst.HEAPU8.buffer, dataPtr, nDataBytes);
-        dataHeap.set(new Uint8Array(floatData.buffer));
-
-        flush_out();
-        if (libfourst._fourst_gencode(dataHeap.byteOffset)) {
-            output("someone made an oopsie...");
-        }
-
-        libfourst._free(dataHeap.byteOffset);
+        codegen(arr);
     }
 }
 
-function updateEntry() {
+function codegen(arr) { 
+    let floatData = Float64Array.from(arr);
+
+    // Get data byte size, allocate memory on Emscripten heap, and get pointer
+    const nDataBytes = floatData.length * floatData.BYTES_PER_ELEMENT;
+    const dataPtr = libfourst._malloc(nDataBytes);
+
+    var dataHeap = new Uint8Array(libfourst.HEAPU8.buffer, dataPtr, nDataBytes);
+    dataHeap.set(new Uint8Array(floatData.buffer));
+
+    flush_out();
+    if (libfourst._fourst_gencode(dataHeap.byteOffset)) {
+        output("someone made an oopsie...");
+    }
+
+    libfourst._free(dataHeap.byteOffset);
+}
+
+function updateDim() {
     dim = s_dim.val().replace(/\s/g, '').split(",").map(x=>+x).filter(x=>x!=0);
     
     if (dim.length) {
@@ -223,6 +224,10 @@ function updateEntry() {
     }
     else m_sel.prop("disabled", false);
 
+    updateEntry();
+}
+
+function updateEntry() {
     METHOD_KEY[c_method.val()](dim, m_cont);
 }
 
@@ -236,10 +241,11 @@ function main() {
     m_sel        = $("#mat-select");
     submit       = $("#submit");
 
-    s_dim.change(updateEntry);
+    s_dim.change(updateDim);
     c_method.change(updateEntry);
 
     s_dim.change();
+    c_method.change();
 
     flush_out();
 
@@ -247,14 +253,14 @@ function main() {
     loadlibfourst().then((_libfourst) => {
         libfourst = _libfourst;
     
-        libfourst._write_stdout.push((text) => {console.log(`stdout: ${text}`);});
+        //libfourst._write_stdout.push((text) => {console.log(`stdout: ${text}`);});
         libfourst._write_stdout.push(output);
         libfourst._write_stderr.push((text) => {console.log(`stderr: ${text}`);});
     
         libfourst._fourst_init();
     });
 
-    t_out.on('click', ()=>{copyToClipboard(outstr).then(()=>{copy_msg.setContent("Copied!"); setTimeout(()=>{copy_msg.setContent("Click to copy"), 1000});});});
+    t_out.on('click', ()=>{copyToClipboard(outstr).then(()=>{copy_msg.setContent("Copied!"); setTimeout(()=>{copy_msg.setContent("Click to copy")}, 1000);});});
 
     copy_msg = tippy(t_out[0], {
         content: `Click to copy`,

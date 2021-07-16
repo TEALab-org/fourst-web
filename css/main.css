@@ -48,6 +48,6 @@ input[type=number] {
 }
 
 #text-out:hover {
-    background-color: lightgray;
+    background-color: lightgray !important;
     cursor: pointer;
 }
