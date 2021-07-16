@@ -1,5 +1,6 @@
 #include "datatypes.hh"
 #include <cstdarg>
+#include <cstring>
 
 datatypes::datatypes(std::string s_name, std::string s_type, char c_argument_ptr,
 	int s_dim, ...){
@@ -21,7 +22,7 @@ void datatypes::set_str(char **arr, std::string s_value){
 
 	if (*arr == NULL)
 		printf("Failed to allocate memory for variables.");
-	strcpy(*arr, s_value.c_str());
+	std::strcpy(*arr, s_value.c_str());
 }
 
 datatypes::~datatypes(){

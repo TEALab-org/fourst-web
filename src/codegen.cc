@@ -396,8 +396,14 @@ void generate_header_and_global_decl(FILE *outfp, datatypes &descriptor_forward,
 		fprintf(outfp, "#include <omp.h>\n\n");
 	}
 
+	fprintf(outfp, "#define MAXN  110\n");	
+
 	fprintf(outfp, "int T, N, N_THREADS;\n");
 	fprintf(outfp, "const int BASE = 1024;\n");
+	fprintf(outfp, "double a1");
+	for (int i = 0; i < global_dim; i++)
+		fprintf(outfp, "[MAXN]");
+	fprintf(outfp, "; // TODO: Use dynamic memory allocation\n");
 	fprintf(outfp, "%s %s = NULL;\n", descriptor_forward.ms_type, descriptor_forward.ms_name);
 	fprintf(outfp, "%s %s = NULL;\n", descriptor_backward.ms_type, descriptor_backward.ms_name);
 
@@ -414,7 +420,7 @@ void generate_main(FILE *outfp, datatypes &real, datatypes &input, datatypes &re
 
 	stride += "\t";
 	fprintf(outfp, "%sint t, n, numThreads;\n", stride.c_str());
-	fprintf(outfp, "%sif (argc < 4){\n%scout << \"Enter: N T numThreads\" << endl;\n%sreturn 1;\n%s}\n\n", stride.c_str(), (stride+"\t").c_str(), (stride+"\t").c_str(), stride.c_str());
+	fprintf(outfp, "%sif (argc < 4){\n%sstd::cout << \"Enter: N T numThreads\" << std::endl;\n%sreturn 1;\n%s}\n\n", stride.c_str(), (stride+"\t").c_str(), (stride+"\t").c_str(), stride.c_str());
 	fprintf(outfp, "%sn = atoi(argv[1]);\n", stride.c_str());
 	fprintf(outfp, "%st = atoi(argv[2]);\n", stride.c_str());
 	fprintf(outfp, "%snumThreads = atoi(argv[3]);\n", stride.c_str());
@@ -475,7 +481,11 @@ void generate_main(FILE *outfp, datatypes &real, datatypes &input, datatypes &re
 	fprintf(outfp, "%s}\n\n", stride.c_str());
 }
 
-int _gencode(double *arr, FILE* outfp){
+int _gencode(double* arr, FILE* outfp=stdout){
+	if (!outfp) {
+		// print error code
+	}
+
 	global_options.parallel = true;
 	global_dim = (int)arr[0];
 	for (int i = 0; i < global_dim; i++)

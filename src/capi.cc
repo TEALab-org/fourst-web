@@ -10,7 +10,7 @@
 namespace fourst {
 
 void fourst_init() {
-    printf("libfourst initialized!\nClick\"Generate Code\" to begin.");
+    printf("libfourst initialized!\nClick\"Generate Code\" to begin.\n");
 }
 
 int fourst_gencode(double* arr) {
