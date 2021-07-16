@@ -102,6 +102,10 @@ function updateCoeff(loc, val) {
     coeffs[flattenIdx(loc)] = val;
 }
 
+function applicationCCode() {
+    
+}
+
 function genKernelInput(dim) {
     m_cont.hide();
 
