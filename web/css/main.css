@@ -42,3 +42,12 @@ input[type=number] {
 .kernel-desc {
     width: 100%;
 }
+
+#kernel-input {
+    padding: 2px;
+}
+
+#text-out:hover {
+    background-color: lightgray;
+    cursor: pointer;
+}
