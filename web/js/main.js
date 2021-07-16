@@ -106,26 +106,27 @@ function genKernelInput(dim) {
     m_cont.hide();
 
     elm = kernel_input;
-    elm.show();
 
-    // redraw the editor
-    editor.resize();
-    editor.renderer.updateFull();
+    let top = "";
+    let bottom = "";
     
     // first, we need to generate the keys
-    const dKey = 
+    let dKey = 
         (dim.length < ACCEPTABLE_VARS.length) ? 
-        ACCEPTABLE_VARS.slice(0, dim.length) : 
+        ACCEPTABLE_VARS.slice(0, dim.length).split('') : 
         [...Array(dim.length).keys()].map(x=>{return `d${x}`});
     
+    let tab;
+
     for (let i = 0; i < dim.length; i++) {
-        for (let j = 0; i < j; j++) {
-            out += `  `;
-        }
-        out += `for (int ${dKey[i]} = 0; ${dKey[i]} < ${dim[i] * 2 + 1}; ${dKey[i]}++) {\n`;
+        tab = `  `.repeat(i);
+        top += tab + `for (int ${dKey[i]} = 0; ${dKey[i]} < ${dim[i] * 2 + 1}; ${dKey[i]}++) {\n`;
+        bottom = tab + '}\n' + bottom;
     }
 
-    elm[0].innerHTML = out;
+    elm[0].innerHTML = top + `${tab}  arr[${dKey.join('][')}] =\n${tab}    // put coefficients here\n` + bottom;
+
+    elm.show();
 }
 
 function grabMatrix() {
