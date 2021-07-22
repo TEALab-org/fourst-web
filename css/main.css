@@ -39,6 +39,11 @@ input[type=number] {
     text-align: center;
 }
 
+.man_input {
+    width: 80px;
+    height: 20px;
+}
+
 .kernel-desc {
     width: 100%;
 }
