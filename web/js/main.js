@@ -1,12 +1,16 @@
 // various elements to be populated once DOM is initialized
 let s_dim        = undefined;
 let s_mat        = undefined;
-let m_cont       = undefined;
 let t_out        = undefined;
 let c_method     = undefined;
 let m_sel        = undefined;
-let kernel_input = undefined;
 let submit       = undefined;
+
+const inputs       = {
+    "matrix": undefined,
+    "kernel": undefined,
+    "manual": undefined,
+}
 
 // emscripten module
 let libfourst = undefined;
@@ -30,14 +34,16 @@ let copy_msg  = undefined;
 const METHOD_KEY = {
     "matrix": genStencilMat,
     "kernel": genKernelInput,
+    "manual": genManualInput,
 };
 
 const ACCEPTABLE_VARS = "ijklmnopqrstuvwxyz";
 
 function genStencilMat(dim) {
-    // do necessary showing / hiding
-    kernel_input.hide();
-    const elm = m_cont;
+    // hide all input methods
+    Object.values(inputs).forEach((e)=>{e.hide();});
+
+    const elm = inputs["matrix"];
     elm.show();
 
     // throw out 0 dimensions and make 1d into 2d
@@ -98,6 +104,20 @@ function flattenIdx(loc) {
     return index
 }
 
+function expandIdx(loc) {
+    let index = Array(dim.length);
+    let offset = coeffs.length / (dim[dim.length - 1] * 2 + 1);
+    for (let i = dim.length - 1; i >= 0; i--) {
+        index[dim.length - 1 - i] = (loc / offset) | 0;
+        loc = loc % offset;
+        offset /= (dim[i - 1] * 2 + 1);
+    }
+
+    return index
+}
+
+
+
 function updateCoeff(loc, val) {
     coeffs[flattenIdx(loc)] = val;
 }
@@ -107,9 +127,11 @@ function applicationCCode() {
 }
 
 function genKernelInput(dim) {
-    m_cont.hide();
+    // hide all input methods
+    Object.values(inputs).forEach((e)=>{e.hide();});
 
-    elm = kernel_input;
+    elm = inputs["kernel"];
+    elm.show();
 
     let top = "";
     let bottom = "";
@@ -122,15 +144,37 @@ function genKernelInput(dim) {
     
     let tab;
 
-    for (let i = 0; i < dim.length; i++) {
-        tab = `  `.repeat(i);
-        top += tab + `for (int ${dKey[i]} = 0; ${dKey[i]} < ${dim[i] * 2 + 1}; ${dKey[i]}++) {\n`;
-        bottom = tab + '}\n' + bottom;
+    if (dim.length) {
+        for (let i = 0; i < dim.length; i++) {
+            tab = `  `.repeat(i);
+            top += tab + `for (int ${dKey[i]} = 0; ${dKey[i]} < ${dim[i] * 2 + 1}; ${dKey[i]}++) {\n`;
+            bottom = tab + '}\n' + bottom;
+        }
+    
+        elm[0].innerHTML = top + `${tab}  arr[${dKey.join('][')}] =\n${tab}    // put coefficients here\n` + bottom;
+    } else {
+        elm[0].innerHTML = `Empty -- please indicate the dimensions of the stencil matrix`
+    }
+}
+
+function genManualInput(dim) {
+    // hide all input methods
+    Object.values(inputs).forEach((e)=>{e.hide();});
+
+    elm = inputs["manual"];
+    elm.show();
+
+    let out = "";
+    for (let i = 0; i < coeffs.length; i++) {
+        out += `<div>${expandIdx(i)}&nbsp;<input data-loc="${i}" type="number" class="man_input" value="${coeffs[i]}"></div>`;
     }
 
-    elm[0].innerHTML = top + `${tab}  arr[${dKey.join('][')}] =\n${tab}    // put coefficients here\n` + bottom;
+    elm[0].innerHTML = out;
 
-    elm.show();
+    // wait for dom to update and then give change events to cells
+    setTimeout(() => {
+        $(".man_input").on('change', (e) => {coeffs[e.target.getAttribute("data-loc")] = e.target.value;});
+    }, 0);
 }
 
 function grabMatrix() {
@@ -176,17 +220,17 @@ function flush_out() {
     outstr = "";
 }
 
-function genRes(arr = undefined) {
+function genRes() {
     t_out.css("background-color", "white");
-    if (c_method.val() == "matrix") {
-        const arr = grabMatrix();
-        for (let i = 1; i <= dim.length; i++) {
-            arr.unshift(dim[dim.length - i]);
-        }
-        arr.unshift(dim.length);
 
-        codegen(arr);
+    const arr = grabMatrix();
+    for (let i = 1; i <= dim.length; i++) {
+        arr.unshift(dim[dim.length - i]);
     }
+    arr.unshift(dim.length);
+
+    codegen(arr);
+
 }
 
 function codegen(arr) { 
@@ -207,13 +251,17 @@ function codegen(arr) {
     libfourst._free(dataHeap.byteOffset);
 }
 
+function dimDepth(dim) {
+    return new Array(dim.reduce( (a, b) => a * (2 * b + 1) ));
+}
+
 function updateDim() {
     dim = s_dim.val().replace(/\s/g, '').split(",").map(x=>+x).filter(x=>x!=0);
     
     if (dim.length) {
         const c = dim[0];
         dim[0] = 2 * dim[0] + 1;
-        coeffs = new Array(dim.reduce( (a, b) => a * (2 * b + 1) ));
+        coeffs = dimDepth(dim);
         dim[0] = c;
     }
 
@@ -233,14 +281,15 @@ function updateDim() {
 }
 
 function updateEntry() {
-    METHOD_KEY[c_method.val()](dim, m_cont);
+    METHOD_KEY[c_method.val()](dim);
 }
 
 function main() {
     // initialize element vars
     s_dim        = $("#stencil-dim");
-    m_cont       = $("#matrix-input");
-    kernel_input = $("#kernel-input");
+    inputs["matrix"] = $("#matrix-input");
+    inputs["kernel"] = $("#kernel-input");
+    inputs["manual"] = $("#manual-input");
     t_out        = $("#text-out");
     c_method     = $("#comp-method");
     m_sel        = $("#mat-select");
