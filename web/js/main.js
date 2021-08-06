@@ -20,15 +20,20 @@ let editor    = undefined;
 
 // dimensions
 let dim       = undefined;
+let d_vars    = undefined;
 
 // coefficients
-let coeffs    = [];
+let coeffs    = undefined;
+let coeffRef  = undefined;
 
 // current output
 let outstr    = undefined;
 
 // tippy instances
 let copy_msg  = undefined;
+
+// number of input rows
+let r_n       = undefined;
 
 // method to generate coefficients
 const METHOD_KEY = {
@@ -71,7 +76,7 @@ function genStencilMat(dim) {
             else if (j == dim[0]) {
                 c = "h-mid";
             }
-            out += `<td id="m_${i}-${j}" class="cm_cell ${c}"><input data-loc="${i},${j}" class="cm_input" placeholder="0" type="number" value="${coeffs[flattenIdx([i, j])]}"></td>`;
+            out += `<td id="m_${i}-${j}" class="cm_cell ${c}"><input data-loc="${i},${j}" class="cm_input" placeholder="0" type="number" value="${getElm([i, j])}"></td>`;
         }
         out += "</td>";
     }
@@ -93,38 +98,20 @@ function genStencilMat(dim) {
     }
 }
 
-function flattenIdx(loc) {
-    let index = 0;
-    let offset = 1;
-    for (let i = dim.length - 1; i >= 0; i--) {
-        index += loc[i] * offset;
-        offset *= (dim[i] * 2 + 1);
-    }
-
-    return index
+function getElm(loc) {
+    return (loc.toString() in coeffRef) ? coeffRef[loc].val : "";
 }
-
-function expandIdx(loc) {
-    let index = Array(dim.length);
-    let offset = coeffs.length / (dim[dim.length - 1] * 2 + 1);
-    for (let i = dim.length - 1; i >= 0; i--) {
-        index[dim.length - 1 - i] = (loc / offset) | 0;
-        loc = loc % offset;
-        offset /= (dim[i - 1] * 2 + 1);
-    }
-
-    return index
-}
-
-
 
 function updateCoeff(loc, val) {
-    coeffs[flattenIdx(loc)] = val;
+    if (loc.toString() in coeffRef) {
+        coeffRef[loc].val = parseFloat(val);
+    } else {
+        const c = new Coeff(parseFloat(val), loc);
+        coeffs.push(c);
+        coeffRef[loc] = c;
+    }
 }
 
-function applicationCCode() {
-    
-}
 
 function genKernelInput(dim) {
     // hide all input methods
@@ -136,18 +123,12 @@ function genKernelInput(dim) {
     let top = "";
     let bottom = "";
     
-    // first, we need to generate the keys
-    let dKey = 
-        (dim.length < ACCEPTABLE_VARS.length) ? 
-        ACCEPTABLE_VARS.slice(0, dim.length).split('') : 
-        [...Array(dim.length).keys()].map(x=>{return `d${x}`});
-    
     let tab;
 
     if (dim.length) {
         for (let i = 0; i < dim.length; i++) {
             tab = `  `.repeat(i);
-            top += tab + `for (int ${dKey[i]} = 0; ${dKey[i]} < ${dim[i] * 2 + 1}; ${dKey[i]}++) {\n`;
+            top += tab + `for (int ${d_vars[i]} = 0; ${d_vars[i]} < ${d_vars[i] * 2 + 1}; ${d_vars[i]}++) {\n`;
             bottom = tab + '}\n' + bottom;
         }
     
@@ -157,28 +138,68 @@ function genKernelInput(dim) {
     }
 }
 
-function genManualInput(dim) {
+function genManRow(loc=undefined, val=undefined) {
+    let e = document.createElement('div');
+    let out = "<div>";
+
+    if (loc === undefined) {
+        for (let i = 0; i < d_vars.length; i++) {
+            out += ` ${d_vars[i]}: &nbsp;<input type="number" id="r${r_n}dim_${i}" class="man_dim r${r_n}" placeholder="0" data-row="${r_n}">`;
+        }
+    } else {
+        for (let i = 0; i < d_vars.length; i++) {
+            out += ` ${d_vars[i]}: &nbsp;<input type="number" id="r${r_n}dim_${i}" class="man_dim r${r_n}" value="${loc[i]}" data-row="${r_n}">`;
+        }
+    }
+
+
+    out += ` value: &nbsp;<input type="number" id="r${r_n}_val" class="man_val r${r_n}" placeholder="0" value="${(val === undefined) ? undefined : val}" data-row="${r_n}">`;
+
+    e.innerHTML = out + `</div>`;
+
+    setTimeout(() => {
+        $(`.r${r_n}`).change((e) => {
+            const loc = new Array(dim.length);
+            const row = parseInt(e.target.getAttribute("data-row"));
+            let valid = true;
+            let val = 0;
+
+            for (let i = 0; i < dim.length; i++) {
+                const v = parseInt($(`#r${row}dim_${i}`).val());
+                if (v === undefined || v < 0 || v > dim[i] * 2 || isNaN(v)) {console.log(`invalid dim for row ${row}`); valid = false;}
+                loc[i] = v;
+            }
+
+            val = $(`#r${row}_val`).val();
+            if (val === undefined || val < 0 || isNaN(val)) {console.log(`invalid val for row ${row}`); valid = false;}
+
+            if (valid) updateCoeff(loc, val);
+        });
+        r_n++;
+    }, 0);
+
+    return e;
+}
+
+function genManualInput() {
     // hide all input methods
     Object.values(inputs).forEach((e)=>{e.hide();});
 
     elm = inputs["manual"];
-    elm.show();
+    rows = $("#manual-rows")[0];
+    rows.innerHTML = "";
 
-    let out = "";
-    for (let i = 0; i < coeffs.length; i++) {
-        out += `<div>${expandIdx(i)}&nbsp;<input data-loc="${i}" type="number" class="man_input" value="${coeffs[i]}"></div>`;
+    r_n = 0;
+
+    let i;
+    for (i = 0; i < coeffs.length; i++) {
+        rows.appendChild(genManRow(coeffs[i].loc, coeffs[i].val)); 
+    }
+    if (!i) {
+        rows.appendChild(genManRow()); 
     }
 
-    elm[0].innerHTML = out;
-
-    // wait for dom to update and then give change events to cells
-    setTimeout(() => {
-        $(".man_input").on('change', (e) => {coeffs[e.target.getAttribute("data-loc")] = e.target.value;});
-    }, 0);
-}
-
-function grabMatrix() {
-    return Array.from(coeffs, v => v || 0);
+    elm.show();
 }
 
 function errOut(msg, elm) {
@@ -223,14 +244,13 @@ function flush_out() {
 function genRes() {
     t_out.css("background-color", "white");
 
-    const arr = grabMatrix();
+    const arr = toDense(coeffs, dim);//grabMatrix();
     for (let i = 1; i <= dim.length; i++) {
         arr.unshift(dim[dim.length - i]);
     }
     arr.unshift(dim.length);
 
     codegen(arr);
-
 }
 
 function codegen(arr) { 
@@ -245,37 +265,35 @@ function codegen(arr) {
 
     flush_out();
     if (libfourst._fourst_gencode(dataHeap.byteOffset)) {
-        output("someone made an oopsie...");
+        output("ERROR IN LIBFOURST");
     }
 
     libfourst._free(dataHeap.byteOffset);
 }
 
-function dimDepth(dim) {
-    return new Array(dim.reduce( (a, b) => a * (2 * b + 1) ));
-}
-
 function updateDim() {
     dim = s_dim.val().replace(/\s/g, '').split(",").map(x=>+x).filter(x=>x!=0);
-    
-    if (dim.length) {
-        const c = dim[0];
-        dim[0] = 2 * dim[0] + 1;
-        coeffs = dimDepth(dim);
-        dim[0] = c;
-    }
+
+    // generate variables for each dimension
+    d_vars = 
+    (dim.length < ACCEPTABLE_VARS.length) ? 
+    ACCEPTABLE_VARS.slice(0, dim.length).split('') : 
+    [...Array(dim.length).keys()].map(x=>{return `d${x}`});
+
+    coeffs   = new Array();
+    coeffRef = {};
 
     submit.prop("disabled", !(dim.length > 0));
 
     if (dim.length > 2) {
         if (c_method.val() == "matrix") {
-            c_method.val("kernel");
+            c_method.val("manual");
             c_method.change();
             return;
         }
-        m_sel.prop("disabled", true);
+        inputs["matrix"].prop("disabled", "true");
     }
-    else m_sel.prop("disabled", false);
+    else inputs["matrix"].prop("disabled", "false");
 
     updateEntry();
 }

@@ -39,6 +39,10 @@ input[type=number] {
     text-align: center;
 }
 
+#manual-input {
+    padding: 4px;
+}
+
 .man_input {
     width: 80px;
     height: 20px;
@@ -46,6 +50,16 @@ input[type=number] {
 
 .kernel-desc {
     width: 100%;
+}
+
+.man_dim {
+    height: 20px;
+    width: 40px;
+}
+
+.man_val {
+    height: 20px;
+    width: 80px;
 }
 
 #kernel-input {
