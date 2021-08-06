@@ -31,6 +31,7 @@
 
     <!-- Project-specfic files -->
     <link rel="stylesheet" href="css/main.css">
+    <script src="js/dim.js"></script>
     <script src="js/main.js"></script>
 </head>
 
@@ -86,14 +87,17 @@
                     <div class="col-12">
                         <select class="form-select" aria-label="Computation Method" id="comp-method">
                             <option id="mat-select" value="matrix" selected>Coefficient Matrix</option>
-                            <option value="kernel">Kernel</option>
-                            <option value="manual">Manual Assignment</option>
+                            <!--<option value="kernel">Kernel</option>-->
+                            <option value="manual">Sparse Assignment</option>
                         </select>
 
                         <div class="bg-white border">
                             <div id="matrix-input"></div>
-                            <pre id="kernel-input"></pre>
-                            <div id="manual-input">hehe</div>
+                            <!--<pre id="kernel-input"></pre>-->
+                            <div id="manual-input">
+                                <div id="manual-rows"></div>
+                                <button type="button" class="btn btn-success" style="padding: 2px; margin: 4px;" onclick="$('#manual-rows')[0].appendChild(genManRow())">&nbsp;+&nbsp;</button>
+                            </div>
                         </div>
                     </div>
                 </div>
