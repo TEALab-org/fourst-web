@@ -4,7 +4,7 @@
 #
 #   * `make`: Builds 
 #
-# @author: Gregory Croisdale <gcroisda@vols.utk.edu>
+# @author: Anonymous for publication
 
 
 # -*- Programs -*-

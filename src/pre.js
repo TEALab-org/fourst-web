@@ -1,6 +1,6 @@
 /* pre.js - preamble for compiled Emscripten module
  * 
- * @author: Gregory Croisdale <gcroisda@vols.utk.edu>
+ * @author: Anonymous for publication
  */
 
 var Module = {

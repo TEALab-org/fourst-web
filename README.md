@@ -1,6 +1,6 @@
 # Fourst
 
-Fourst (Fourier Stencil Generator) is a project developed under [Dr. Rezaul Chowdhury](https://www3.cs.stonybrook.edu/~rezaul/). Fourst is deployable as a web application, and is hosted at [gcrois.github.io/stencil-web/](https://gcrois.github.io/stencil-web/). It has been tested with many platforms, and relies only on a modern web browser with a modern JavaScript engine and [WASM](https://webassembly.org/) support.
+Fourst (Fourier Stencil Generator) is a project developed ANONYMIZED. Fourst is deployable as a web application, and is hosted at ANONYMIZED. It has been tested with many platforms, and relies only on a modern web browser with a modern JavaScript engine and [WASM](https://webassembly.org/) support.
 
 ## Building
 
