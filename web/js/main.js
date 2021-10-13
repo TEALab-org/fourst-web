@@ -208,6 +208,10 @@ function errOut(msg, elm) {
 
 function output(msg) {
     t_out[0].innerHTML += msg.replace('<', '&lt').replace('>', '&gt') + '\n';
+    setTimeout(()=>{
+        Prism.highlightElement(t_out[0]);
+        console.log("highlighting??");
+    }, 0);
     outstr += msg + '\n';
 }
 
