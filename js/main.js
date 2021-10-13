@@ -289,11 +289,11 @@ function updateDim() {
         if (c_method.val() == "matrix") {
             c_method.val("manual");
             c_method.change();
-            return;
         }
-        inputs["matrix"].prop("disabled", "true");
+        $("#mat-select")[0].disabled = true;
+        return;
     }
-    else inputs["matrix"].prop("disabled", "false");
+    else $("#mat-select")[0].disabled = false;
 
     updateEntry();
 }
