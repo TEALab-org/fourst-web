@@ -6,10 +6,15 @@ let c_method     = undefined;
 let m_sel        = undefined;
 let submit       = undefined;
 
-const inputs       = {
+const inputs     = {
     "matrix": undefined,
     "kernel": undefined,
     "manual": undefined,
+}
+
+const options = {
+    "boundaryMethod": undefined,
+    "targetArch": undefined,
 }
 
 // emscripten module
